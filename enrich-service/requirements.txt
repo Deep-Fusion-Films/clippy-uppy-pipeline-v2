@@ -1,1 +1,8 @@
+fastapi
+uvicorn[standard]
+pydantic
+google-cloud-storage
+google-cloud-pubsub
+python-dotenv
+google-genai
 
