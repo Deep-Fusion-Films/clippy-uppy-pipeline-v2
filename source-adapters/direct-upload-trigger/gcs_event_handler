@@ -1,0 +1,4 @@
+def is_video_file(name: str) -> bool:
+    return name.lower().endswith((
+        ".mp4", ".mov", ".mkv", ".avi", ".mxf"
+    ))
