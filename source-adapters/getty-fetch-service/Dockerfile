@@ -9,4 +9,5 @@ COPY . .
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "main.py"]
+CMD ["python", "source-adapters/getty-fetch-service/main.py"]
+
