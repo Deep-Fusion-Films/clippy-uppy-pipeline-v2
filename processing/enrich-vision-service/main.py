@@ -3,6 +3,27 @@ import json
 from google.cloud import pubsub_v1, firestore
 from gemini_video import enrich_segment
 
+# -------------------------------
+# Cloud Run health server (required)
+# -------------------------------
+from flask import Flask
+import threading
+
+app = Flask(__name__)
+
+@app.get("/")
+def health():
+    return "ok", 200
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+
+# Start health server in background thread
+threading.Thread(target=start_health_server, daemon=True).start()
+# -------------------------------
+
+
 PROJECT_ID = os.environ["PROJECT_ID"]
 NEXT_TOPIC = os.environ["NEXT_TOPIC"]  # e.g. "segment-merge"
 publisher = pubsub_v1.PublisherClient()
@@ -37,4 +58,3 @@ def main(event, context):
     )
 
     publish_next_stage(asset_id, source, segment_index)
-
