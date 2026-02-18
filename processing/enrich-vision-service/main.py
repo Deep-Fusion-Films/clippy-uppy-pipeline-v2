@@ -20,7 +20,7 @@ def start_health_server():
     app.run(host="0.0.0.0", port=port)
 
 # Start health server in background thread
-threading.Thread(target=start_health_server, daemon=True).start()
+if __name__ == "__main__": start_health_server()
 # -------------------------------
 
 
