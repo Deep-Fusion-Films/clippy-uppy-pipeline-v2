@@ -5,6 +5,27 @@ from google.cloud import pubsub_v1, firestore
 from merge_logic import merge_segments
 from timeline_builder import build_timeline
 
+# -------------------------------
+# Cloud Run health server (required)
+# -------------------------------
+from flask import Flask
+import threading
+
+app = Flask(__name__)
+
+@app.get("/")
+def health():
+    return "ok", 200
+
+def start_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
+
+# Start health server in background thread
+threading.Thread(target=start_health_server, daemon=True).start()
+# -------------------------------
+
+
 PROJECT_ID = os.environ["PROJECT_ID"]
 NEXT_TOPIC = os.environ["NEXT_TOPIC"]  # e.g. "store-metadata"
 publisher = pubsub_v1.PublisherClient()
@@ -64,4 +85,3 @@ def main(event, context):
     db.collection("assets").document(asset_id).set({"status": "completed"}, merge=True)
 
     publish_next_stage(asset_id, source)
-
