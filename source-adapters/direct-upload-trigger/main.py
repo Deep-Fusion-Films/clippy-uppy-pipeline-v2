@@ -66,13 +66,16 @@ def handle_event():
         print("[ERROR] No JSON payload")
         return "bad-request", 400
 
-    event_data = envelope.get("data", {})
-    if not event_data:
-        print("[ERROR] Missing 'data' field in CloudEvent")
-        return "bad-request", 400
+    # CloudEvents format
+    if "data" in envelope:
+        event_data = envelope["data"]
+        bucket = event_data.get("bucket")
+        name = event_data.get("name")
 
-    bucket = event_data.get("bucket")
-    name = event_data.get("name")
+    # Legacy GCS Notification format
+    else:
+        bucket = envelope.get("bucket")
+        name = envelope.get("name")
 
     if not bucket or not name:
         print("[ERROR] Missing bucket or object name")
