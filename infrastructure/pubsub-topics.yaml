@@ -1,0 +1,7 @@
+topics:
+  - name: ingest
+  - name: video-split
+  - name: audio-transcribe
+  - name: enrich-vision
+  - name: segment-merge
+  - name: store-metadata
