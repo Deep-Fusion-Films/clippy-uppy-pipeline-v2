@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PROJECT_ID="your-project-id"
+PROJECT_ID="deepfusion-clippyuppy-pipeline"
 REGION="europe-west2"
 REPO="pipeline"
 
