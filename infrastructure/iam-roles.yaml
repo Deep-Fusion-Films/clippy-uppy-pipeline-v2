@@ -1,0 +1,23 @@
+roles:
+  video-split-service:
+    - roles/storage.objectViewer
+    - roles/storage.objectCreator
+    - roles/pubsub.publisher
+
+  audio-transcribe-service:
+    - roles/storage.objectViewer
+    - roles/firestore.user
+    - roles/pubsub.publisher
+
+  enrich-vision-service:
+    - roles/storage.objectViewer
+    - roles/firestore.user
+    - roles/pubsub.publisher
+
+  segment-merger-service:
+    - roles/firestore.user
+    - roles/pubsub.publisher
+
+  store-service:
+    - roles/storage.objectCreator
+    - roles/firestore.user
