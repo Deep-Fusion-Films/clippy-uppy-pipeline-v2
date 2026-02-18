@@ -1,3 +1,103 @@
+SCHEMA_BLOCK = """
+{
+  "type": "object",
+  "properties": {
+    "brief_summary": {"type": "string"},
+    "verbose_summary": {"type": "string"},
+
+    "people": {
+      "type": "object",
+      "properties": {
+        "present": {"type": "boolean"},
+        "count": {"type": "number", "nullable": true},
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "age": {"type": "string", "nullable": true},
+              "gen": {"type": "string", "nullable": true},
+              "role": {"type": "string", "nullable": true},
+              "act": {"type": "array", "items": {"type": "string"}},
+              "pos": {"type": "string", "nullable": true},
+              "clo": {"type": "array", "items": {"type": "string"}},
+              "vis": {"type": "string", "nullable": true}
+            }
+          }
+        }
+      }
+    },
+
+    "animals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {"type": "string"},
+          "cnt": {"type": "number", "nullable": true},
+          "beh": {"type": "array", "items": {"type": "string"}},
+          "col": {"type": "string", "nullable": true},
+          "pos": {"type": "string", "nullable": true},
+          "int": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+
+    "objects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lbl": {"type": "string"},
+          "cnt": {"type": "number", "nullable": true},
+          "sal": {"type": "number", "nullable": true},
+          "pos": {"type": "string", "nullable": true},
+          "use": {"type": "string", "nullable": true},
+          "col": {"type": "string", "nullable": true},
+          "txt": {
+            "type": "object",
+            "properties": {
+              "orig": {"type": "string", "nullable": true},
+              "lang": {"type": "string", "nullable": true},
+              "eng": {"type": "string", "nullable": true}
+            }
+          }
+        }
+      }
+    },
+
+    "brand_ip": {
+      "type": "object",
+      "properties": {
+        "logos": {"type": "array", "items": {"type": "string"}},
+        "other": {"type": "array", "items": {"type": "string"}},
+        "ctx": {"type": "string", "nullable": true}
+      }
+    },
+
+    "celebrities": {
+      "type": "object",
+      "properties": {
+        "detected": {"type": "array", "items": {"type": "string"}},
+        "ctx": {"type": "string", "nullable": true}
+      }
+    },
+
+    "camera": {"type": "object"},
+    "environment": {"type": "object"},
+    "audio": {"type": "object"},
+    "text_overlays": {"type": "object"},
+    "quick_edits": {"type": "object"},
+    "timeline": {"type": "array", "items": {"type": "object"}},
+    "recognizable": {"type": "object"},
+    "historical_context": {"type": "object"},
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "ai_artifacts": {"type": "object"}
+  }
+}
+"""
+
+
 VISION_PROMPT = f"""
 You are a constrained forensic video-analysis system. Your output must be strictly factual, concise, and fully aligned with the schema provided. Do not speculate, infer intent, or add information not directly observable in the media.
 
@@ -22,9 +122,9 @@ OBJECT IDENTIFICATION RULES:
 - If an object appears in the brief or verbose summary, it must also appear in the objects[] list.
 - For each object, provide label, approximate count (if possible), position, usage, and color when visible.
 - If an object contains text (signs, banners, labels), extract:
-  - original text (orig)
-  - detected language code (lang)
-  - English translation (eng), if possible.
+  - orig: original text
+  - lang: language code
+  - eng: English translation (if possible)
 
 TEXT & LANGUAGE RULES:
 - For any visible text in the environment (signs, storefronts, banners, posters), populate environment.txt with:
@@ -35,7 +135,7 @@ TEXT & LANGUAGE RULES:
   - orig: original text
   - lang: language code
   - eng: English translation
-  - pos: approximate position (top, bottom, center, left, right).
+  - pos: approximate position (top, bottom, center, left, right)
 
 TRANSCRIPTION RULES:
 - For non-English or noisy audio, populate:
@@ -84,8 +184,7 @@ DEFINITIONS:
 - "Audio Events": footsteps, traffic, wind, speech, animal noises.
 - "Scene Change": a clear shift in camera angle, location, or composition.
 
-Return only valid JSON that conforms to the schema.
+Return only valid JSON that conforms to the following schema:
 
-Schema:
 {SCHEMA_BLOCK}
 """
