@@ -44,7 +44,8 @@ def main(event, context):
 
     # Determine GCS path based on source
     bucket_name = os.environ["METADATA_BUCKET"]
-    object_name = f"{source}/{asset_id}.json"
+    object_name = f"metadata/{source}/{asset_id}.json"
+
 
     # Write metadata to GCS
     gcs_uri = write_metadata_to_gcs(bucket_name, object_name, final_metadata)
