@@ -6,17 +6,18 @@ REGION="europe-west2"
 REPO="pipeline"
 
 deploy_service () {
-    SERVICE=$1
-    IMAGE="europe-west2-docker.pkg.dev/$PROJECT_ID/$REPO/$SERVICE:latest"
+    SERVICE_PATH=$1
+    SERVICE_NAME=$(echo "$SERVICE_PATH" | tr '/' '-')
+    IMAGE="europe-west2-docker.pkg.dev/$PROJECT_ID/$REPO/$SERVICE_PATH:latest"
 
-    echo "Building $SERVICE..."
-    docker build -t $IMAGE "./$SERVICE"
+    echo "Building $SERVICE_PATH..."
+    docker build -t $IMAGE "./$SERVICE_PATH"
 
-    echo "Pushing $SERVICE..."
+    echo "Pushing $SERVICE_PATH..."
     docker push $IMAGE
 
-    echo "Deploying $SERVICE..."
-    gcloud run deploy $SERVICE \
+    echo "Deploying $SERVICE_NAME..."
+    gcloud run deploy $SERVICE_NAME \
         --image $IMAGE \
         --region $REGION \
         --platform managed \
@@ -44,4 +45,3 @@ deploy_service "processing/segment-merger-service"
 deploy_service "storage/store-service"
 
 echo "All services deployed."
-
