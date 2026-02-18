@@ -58,7 +58,7 @@ def publish_event(asset_id: str, gcs_uri: str):
 # Cloud Run HTTP entrypoint
 # -----------------------------
 
-@app.post("/")
+@app.route("/", methods=["POST"])
 def handle_event():
     envelope = request.get_json(silent=True)
 
