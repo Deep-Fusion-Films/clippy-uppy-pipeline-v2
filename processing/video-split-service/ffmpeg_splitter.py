@@ -49,6 +49,7 @@ def _probe_duration(uri: str) -> float:
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if not result.stdout.strip():
+        # force a clear failure instead of falling through as None
         raise RuntimeError(
             f"ffprobe returned no duration for {uri}. stderr={result.stderr}"
         )
@@ -59,7 +60,6 @@ def _probe_duration(uri: str) -> float:
         raise RuntimeError(
             f"ffprobe returned invalid duration for {uri}: '{result.stdout}'"
         )
-
 
 # -------------------------------
 # Probe size directly from GCS
@@ -75,10 +75,11 @@ def _probe_size(uri: str) -> int:
 # Decide whether splitting is needed (safe)
 # -------------------------------
 def needs_splitting(uri: str) -> bool:
-    duration = _probe_duration(uri)  # guaranteed float or raises
+    # _probe_duration will now either return a float or raise
+    duration = _probe_duration(uri)
     size = _probe_size(uri)
-    return duration > MAX_DURATION_SECONDS or size > MAX_SIZE_BYTES
 
+    return duration > MAX_DURATION_SECONDS or size > MAX_SIZE_BYTES
 
 # -------------------------------
 # Split video into 30s segments
