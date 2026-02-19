@@ -49,7 +49,6 @@ def _probe_duration(uri: str) -> float:
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if not result.stdout.strip():
-        # force a clear failure instead of falling through as None
         raise RuntimeError(
             f"ffprobe returned no duration for {uri}. stderr={result.stderr}"
         )
@@ -61,30 +60,35 @@ def _probe_duration(uri: str) -> float:
             f"ffprobe returned invalid duration for {uri}: '{result.stdout}'"
         )
 
+
 # -------------------------------
-# Probe size directly from GCS
+# Probe size directly from GCS (strict, never None)
 # -------------------------------
 def _probe_size(uri: str) -> int:
     bucket_name = uri.split("/")[2]
     object_name = "/".join(uri.split("/")[3:])
-    blob = storage_client.bucket(bucket_name).blob(object_name)
+
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.get_blob(object_name)
+
+    if blob is None:
+        raise RuntimeError(f"GCS object not found for URI: {uri}")
+
+    if blob.size is None:
+        raise RuntimeError(f"GCS object has no size metadata for URI: {uri}")
+
     return blob.size
 
 
 # -------------------------------
 # Decide whether splitting is needed (safe)
 # -------------------------------
-# ffmpeg_splitter.py
-def needs_splitting(video_uri):
-    duration = get_duration(video_uri) # Assuming this is your helper
-    size = get_size(video_uri)
-    
-    # Safety check: if ffmpeg fails to read the file, don't crash
-    if duration is None or size is None:
-        print(f"Error: Could not retrieve metadata for {video_uri}")
-        return False 
+def needs_splitting(video_uri: str) -> bool:
+    duration = _probe_duration(video_uri)  # float or raises
+    size = _probe_size(video_uri)          # int or raises
 
     return duration > MAX_DURATION_SECONDS or size > MAX_SIZE_BYTES
+
 
 # -------------------------------
 # Split video into 30s segments
