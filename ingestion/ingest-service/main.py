@@ -9,20 +9,27 @@ from validator import validate_ingest_message
 
 app = Flask(__name__)
 
+# ----------------------------------------------------
+# Environment
+# ----------------------------------------------------
 PROJECT_ID = os.environ["PROJECT_ID"]
 NEXT_TOPIC = os.environ["NEXT_TOPIC"]
-publisher = pubsub_v1.PublisherClient()
 
-# -------------------------------
+# Force Pub/Sub client to use the correct project
+publisher = pubsub_v1.PublisherClient(
+    client_options={"quota_project_id": PROJECT_ID}
+)
+
+# ----------------------------------------------------
 # Health check
-# -------------------------------
+# ----------------------------------------------------
 @app.get("/")
 def health():
     return "ok", 200
 
-# -------------------------------
+# ----------------------------------------------------
 # Pub/Sub push handler
-# -------------------------------
+# ----------------------------------------------------
 @app.post("/")
 def pubsub_handler():
     envelope = request.get_json()
@@ -43,14 +50,17 @@ def pubsub_handler():
     source = message_data["source"]
     video_uri = message_data["video_uri"]
 
+    # Register in Firestore / Datastore
     register_asset(asset_id, source, video_uri)
+
+    # Publish to next stage
     publish_next_stage(asset_id, source, video_uri)
 
     return ("", 204)
 
-# -------------------------------
+# ----------------------------------------------------
 # Publish next stage
-# -------------------------------
+# ----------------------------------------------------
 def publish_next_stage(asset_id: str, source: str, video_uri: str):
     message = {
         "asset_id": asset_id,
@@ -58,12 +68,16 @@ def publish_next_stage(asset_id: str, source: str, video_uri: str):
         "video_uri": video_uri,
     }
     data = json.dumps(message).encode("utf-8")
+
+    # Build topic path explicitly using the correct project
     topic_path = publisher.topic_path(PROJECT_ID, NEXT_TOPIC)
+
+    # Publish synchronously so errors surface in logs
     publisher.publish(topic_path, data=data).result()
 
-# -------------------------------
-# Start server (foreground)
-# -------------------------------
+# ----------------------------------------------------
+# Start server
+# ----------------------------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
