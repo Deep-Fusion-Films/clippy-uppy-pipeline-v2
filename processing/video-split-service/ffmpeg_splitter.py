@@ -74,10 +74,15 @@ def _probe_size(uri: str) -> int:
 # -------------------------------
 # Decide whether splitting is needed (safe)
 # -------------------------------
-def needs_splitting(uri: str) -> bool:
-    # _probe_duration will now either return a float or raise
-    duration = _probe_duration(uri)
-    size = _probe_size(uri)
+# ffmpeg_splitter.py
+def needs_splitting(video_uri):
+    duration = get_duration(video_uri) # Assuming this is your helper
+    size = get_size(video_uri)
+    
+    # Safety check: if ffmpeg fails to read the file, don't crash
+    if duration is None or size is None:
+        print(f"Error: Could not retrieve metadata for {video_uri}")
+        return False 
 
     return duration > MAX_DURATION_SECONDS or size > MAX_SIZE_BYTES
 
