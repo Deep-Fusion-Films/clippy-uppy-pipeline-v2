@@ -27,7 +27,7 @@ def _download_to_tmp(gs_uri: str) -> str:
 
 
 # -------------------------------
-# Probe duration using local file
+# Probe duration using local file (safe)
 # -------------------------------
 def _probe_duration(uri: str) -> float:
     local_path = _download_to_tmp(uri)
@@ -42,10 +42,19 @@ def _probe_duration(uri: str) -> float:
 
     result = subprocess.run(cmd, capture_output=True, text=True)
 
+    # If ffprobe fails or returns nothing, raise a clear error
     if not result.stdout.strip():
-        raise RuntimeError(f"ffprobe returned no duration for {uri}. stderr={result.stderr}")
+        raise RuntimeError(
+            f"ffprobe returned no duration for {uri}. stderr={result.stderr}"
+        )
 
-    return float(result.stdout.strip())
+    try:
+        return float(result.stdout.strip())
+    except ValueError:
+        raise RuntimeError(
+            f"ffprobe returned invalid duration for {uri}: '{result.stdout}'"
+        )
+
 
 # -------------------------------
 # Probe size directly from GCS
@@ -58,11 +67,13 @@ def _probe_size(uri: str) -> int:
 
 
 # -------------------------------
-# Decide whether splitting is needed
+# Decide whether splitting is needed (safe)
 # -------------------------------
 def needs_splitting(uri: str) -> bool:
     duration = _probe_duration(uri)
     size = _probe_size(uri)
+
+    # duration is guaranteed to be a float now
     return duration > MAX_DURATION_SECONDS or size > MAX_SIZE_BYTES
 
 
