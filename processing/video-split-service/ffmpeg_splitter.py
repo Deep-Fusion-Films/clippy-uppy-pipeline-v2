@@ -1,5 +1,5 @@
+import os
 import subprocess
-import tempfile
 import uuid
 from google.cloud import storage
 
@@ -8,6 +8,10 @@ MAX_DURATION_SECONDS = 1800  # 30 minutes
 MAX_SIZE_BYTES = 2 * 1024 * 1024 * 1024  # 2GB
 
 storage_client = storage.Client()
+
+
+def _extract_filename(gs_uri: str) -> str:
+    return os.path.basename(gs_uri)
 
 
 # -------------------------------
@@ -20,14 +24,16 @@ def _download_to_tmp(gs_uri: str) -> str:
     bucket = storage_client.bucket(bucket_name)
     blob = bucket.blob(object_name)
 
-    local_path = f"/tmp/{uuid.uuid4()}.mp4"
+    # keep original name but avoid collisions with a UUID prefix
+    original = _extract_filename(gs_uri)
+    local_path = f"/tmp/{uuid.uuid4()}_{original}"
     blob.download_to_filename(local_path)
 
     return local_path
 
 
 # -------------------------------
-# Probe duration using local file (safe)
+# Probe duration using local file (strict, never None)
 # -------------------------------
 def _probe_duration(uri: str) -> float:
     local_path = _download_to_tmp(uri)
@@ -42,7 +48,6 @@ def _probe_duration(uri: str) -> float:
 
     result = subprocess.run(cmd, capture_output=True, text=True)
 
-    # If ffprobe fails or returns nothing, raise a clear error
     if not result.stdout.strip():
         raise RuntimeError(
             f"ffprobe returned no duration for {uri}. stderr={result.stderr}"
@@ -70,10 +75,8 @@ def _probe_size(uri: str) -> int:
 # Decide whether splitting is needed (safe)
 # -------------------------------
 def needs_splitting(uri: str) -> bool:
-    duration = _probe_duration(uri)
+    duration = _probe_duration(uri)  # guaranteed float or raises
     size = _probe_size(uri)
-
-    # duration is guaranteed to be a float now
     return duration > MAX_DURATION_SECONDS or size > MAX_SIZE_BYTES
 
 
@@ -87,7 +90,9 @@ def split_video(uri: str):
     Returns list of GCS URIs.
     """
     bucket_name = uri.split("/")[2]
-    base_prefix = "/".join(uri.split("/")[3:]).rsplit(".", 1)[0]
+    object_path = "/".join(uri.split("/")[3:])
+    base_prefix = object_path.rsplit(".", 1)[0]
+    original_name = _extract_filename(uri).rsplit(".", 1)[0]
 
     bucket = storage_client.bucket(bucket_name)
 
@@ -95,7 +100,7 @@ def split_video(uri: str):
     local_path = _download_to_tmp(uri)
 
     # Prepare segment pattern
-    segment_pattern = local_path.replace(".mp4", "_%03d.mp4")
+    segment_pattern = local_path.rsplit(".", 1)[0] + "_%03d.mp4"
 
     # Run ffmpeg split
     cmd = [
@@ -121,7 +126,7 @@ def split_video(uri: str):
         except FileNotFoundError:
             break
 
-        seg_name = f"{base_prefix}/segments/{idx}.mp4"
+        seg_name = f"{base_prefix}/segments/{original_name}_{idx:03d}.mp4"
         seg_blob = bucket.blob(seg_name)
         seg_blob.upload_from_filename(seg_path)
 
