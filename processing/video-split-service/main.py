@@ -1,6 +1,7 @@
 import os
 import json
 import base64
+import time
 from flask import Flask, request
 
 from google.cloud import pubsub_v1
@@ -15,6 +16,17 @@ app = Flask(__name__)
 @app.get("/")
 def health():
     return "ok", 200
+
+
+# -------------------------------
+# Startup warm-up gate
+# -------------------------------
+STARTUP_DELAY_SECONDS = int(os.environ.get("STARTUP_DELAY_SECONDS", "2"))
+STARTED_AT = time.time()
+
+def is_warmed_up() -> bool:
+    return (time.time() - STARTED_AT) >= STARTUP_DELAY_SECONDS
+
 
 # -------------------------------
 # Environment + Pub/Sub setup
@@ -37,10 +49,15 @@ def publish_segment_event(asset_id: str, source: str, segment_uri: str, segment_
 
 
 # -------------------------------
-# Pub/Sub Push Handler (FIXED)
+# Pub/Sub Push Handler
 # -------------------------------
 @app.post("/")
 def pubsub_handler():
+    # Warm-up protection: avoid processing during cold start
+    if not is_warmed_up():
+        print("[WARMUP] Rejecting request during startup window")
+        return ("Service warming up", 503)
+
     envelope = request.get_json()
 
     if not envelope or "message" not in envelope:
