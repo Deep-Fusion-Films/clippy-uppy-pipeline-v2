@@ -43,10 +43,9 @@ def _probe_duration(uri: str) -> float:
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     if not result.stdout.strip():
-        raise RuntimeError(f"ffprobe returned no duration for {uri}")
+        raise RuntimeError(f"ffprobe returned no duration for {uri}. stderr={result.stderr}")
 
     return float(result.stdout.strip())
-
 
 # -------------------------------
 # Probe size directly from GCS
