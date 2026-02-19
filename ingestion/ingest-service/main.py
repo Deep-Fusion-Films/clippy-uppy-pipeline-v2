@@ -62,7 +62,7 @@ def publish_next_stage(asset_id: str, source: str, video_uri: str):
     publisher.publish(topic_path, data=data).result()
 
 # -------------------------------
-# Start server
+# Start server (foreground)
 # -------------------------------
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
