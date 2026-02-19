@@ -19,7 +19,7 @@ def health():
 # -------------------------------
 # Environment + Pub/Sub setup
 # -------------------------------
-PROJECT_ID = os.environ["PROJECT_ID"]
+PROJECT_ID = os.environ.get("PROJECT_ID", "deepfusion-clippyuppy-pipeline")
 NEXT_TOPIC = os.environ["NEXT_TOPIC"]  # e.g. "audio-transcribe"
 publisher = pubsub_v1.PublisherClient()
 
