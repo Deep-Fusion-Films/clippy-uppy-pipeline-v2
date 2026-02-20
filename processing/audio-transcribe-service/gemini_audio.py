@@ -1,10 +1,11 @@
 import tempfile
 import subprocess
 from google.cloud import storage
-from vertexai.generative_models import GenerativeModel
+from vertexai.generative_models import GenerativeModel, Part
 
 
 def _download_segment(uri: str) -> str:
+    """Download a GCS video segment to a temporary local file."""
     bucket_name = uri.split("/")[2]
     object_name = "/".join(uri.split("/")[3:])
 
@@ -18,6 +19,7 @@ def _download_segment(uri: str) -> str:
 
 
 def _extract_audio(video_path: str) -> str:
+    """Extract mono 16 kHz WAV audio from the video using ffmpeg."""
     audio_path = video_path.replace(".mp4", ".wav")
     cmd = [
         "ffmpeg", "-i", video_path,
@@ -31,6 +33,7 @@ def _extract_audio(video_path: str) -> str:
 
 
 def transcribe_audio(segment_uri: str) -> str:
+    """Download, extract audio, and transcribe using Gemini 1.5 Flash."""
     video_path = _download_segment(segment_uri)
     audio_path = _extract_audio(video_path)
 
@@ -39,14 +42,13 @@ def transcribe_audio(segment_uri: str) -> str:
     with open(audio_path, "rb") as f:
         audio_bytes = f.read()
 
+    audio_part = Part.from_data(
+        mime_type="audio/wav",
+        data=audio_bytes
+    )
+
     response = model.generate_content(
-        [
-            {
-                "mime_type": "audio/wav",
-                "data": audio_bytes,
-            },
-            "Transcribe this audio accurately."
-        ]
+        [audio_part, "Transcribe this audio accurately."]
     )
 
     return response.text
