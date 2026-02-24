@@ -1,7 +1,7 @@
 import tempfile
 import subprocess
 from google.cloud import storage
-from vertexai.generative_models import GenerativeModel, Part
+from vertexai.generative_models import GenerativeModel, Part, Content
 
 
 def _download_segment(uri: str) -> str:
@@ -34,21 +34,35 @@ def _extract_audio(video_path: str) -> str:
 
 def transcribe_audio(segment_uri: str) -> str:
     """Download, extract audio, and transcribe using Gemini 1.5 Flash."""
+    # 1. Download segment
     video_path = _download_segment(segment_uri)
+
+    # 2. Extract WAV audio
     audio_path = _extract_audio(video_path)
 
+    # 3. Load model
     model = GenerativeModel("gemini-1.5-flash")
 
+    # 4. Read audio bytes
     with open(audio_path, "rb") as f:
         audio_bytes = f.read()
 
+    # 5. Build Gemini request correctly
     audio_part = Part.from_data(
         mime_type="audio/wav",
         data=audio_bytes
     )
 
-    response = model.generate_content(
-        [audio_part, "Transcribe this audio accurately."]
+    content = Content(
+        role="user",
+        parts=[
+            audio_part,
+            Part.from_text("Transcribe this audio accurately.")
+        ]
     )
 
+    # 6. Send request
+    response = model.generate_content([content])
+
+    # 7. Return transcript text
     return response.text
