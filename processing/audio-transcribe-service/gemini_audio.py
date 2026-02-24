@@ -1,11 +1,14 @@
+import os
 import tempfile
 import subprocess
+
 from google.cloud import storage
 import vertexai
 from vertexai.generative_models import GenerativeModel, Part, Content
 
 
-# Initialise Vertex AI in the correct region for Gemini models
+# --- Vertex AI initialisation ---
+# Gemini models ONLY exist in us-central1
 vertexai.init(
     project="deepfusion-clippyuppy-pipeline",
     location="us-central1"
@@ -42,20 +45,15 @@ def _extract_audio(video_path: str) -> str:
 
 def transcribe_audio(segment_uri: str) -> str:
     """Download, extract audio, and transcribe using Gemini 1.5 Flash."""
-    # 1. Download segment
     video_path = _download_segment(segment_uri)
-
-    # 2. Extract WAV audio
     audio_path = _extract_audio(video_path)
 
-    # 3. Load the correct Gemini model version
+    # Correct model name
     model = GenerativeModel("gemini-1.5-flash-001")
 
-    # 4. Read audio bytes
     with open(audio_path, "rb") as f:
         audio_bytes = f.read()
 
-    # 5. Build Gemini request correctly
     audio_part = Part.from_data(
         mime_type="audio/wav",
         data=audio_bytes
@@ -69,8 +67,5 @@ def transcribe_audio(segment_uri: str) -> str:
         ]
     )
 
-    # 6. Send request
     response = model.generate_content([content])
-
-    # 7. Return transcript text
     return response.text
